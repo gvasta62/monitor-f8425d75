@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="refresh" content="900">
+<meta name="robots" content="noindex,nofollow">
+<title>Server Traccar</title>
+<link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;600;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F2F2F2;--surface:#FFFFFF;--band:#18213E;--ink:#3C3C3B;--muted:#6E6670;--line:#E4E4E2;--grid:#ECECEA;
+--s1:#2a78d6;--s2:#eb6834;--q1:#1c5cab;--q2:#5598e7;--q3:#b7d3f6;--q0:#E4E4E2;
+--good:#0ca30c;--warn:#fab219;--crit:#d03b3b}
+@media (prefers-color-scheme:dark){:root{--bg:#121212;--surface:#1a1a19;--band:#18213E;--ink:#f0efec;--muted:#c3c2b7;--line:#383835;--grid:#2a2a28;
+--s1:#3987e5;--s2:#d95926;--q1:#5598e7;--q2:#2a78d6;--q3:#184f95;--q0:#383835}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 Urbanist,Segoe UI,Arial,sans-serif}
+header{background:var(--band);color:#fff;padding:20px 32px}
+header h1{margin:0;font-size:26px;font-weight:900}
+header p{margin:2px 0 0;opacity:.85;font-size:14px}
+main{padding:22px 32px;max-width:1400px;margin:0 auto}
+.kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(150px,100%),1fr));gap:14px;margin-bottom:18px}
+.kpi div{min-width:0}
+.kpi div{background:var(--surface);padding:12px 16px;border-left:4px solid var(--band)}
+.kpi b{display:block;font-size:28px;font-weight:900;font-variant-numeric:tabular-nums}
+.kpi span{font-size:13px;color:var(--muted)}
+.griglia{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}
+@media (max-width:900px){.griglia{grid-template-columns:minmax(0,1fr)} main{padding:16px} header{padding:16px}}
+@media (max-width:520px){main{padding:12px 16px} section{padding:14px} .kpi b{font-size:22px}}
+section{background:var(--surface);padding:16px 20px;margin-bottom:18px;min-width:0}
+h2{margin:0 0 4px;font-size:18px}
+.sotto{margin:0 0 10px;font-size:13px;color:var(--muted)}
+svg{display:block;width:100%;height:auto;overflow:visible}
+svg text{fill:var(--muted);font:11px Urbanist,Segoe UI,Arial,sans-serif}
+.leg{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-top:6px}
+.leg i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.tip{position:fixed;pointer-events:none;background:var(--surface);color:var(--ink);border:1px solid var(--line);
+box-shadow:0 2px 8px rgba(0,0,0,.15);padding:6px 10px;font-size:13px;display:none;z-index:9;white-space:nowrap}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;background:var(--band);color:#fff;padding:7px 10px;white-space:nowrap;cursor:pointer;user-select:none}
+td{padding:6px 10px;border-bottom:1px solid var(--line)}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+.st{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12px;font-weight:600}
+.st.ora{background:var(--good);color:#fff}.st.oggi{background:var(--q1);color:#fff}.st.settimana{background:var(--q3);color:#0b0b0b}.st.no{background:var(--q0);color:var(--ink)}
+.avviso{border-left:4px solid var(--warn);padding:10px 14px;background:var(--bg)}
+.ok{color:var(--good);font-weight:600}.ko{color:var(--crit);font-weight:600}
+.filtri{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.chip{border:1px solid var(--muted);background:var(--surface);color:var(--ink);padding:4px 12px;font:inherit;font-size:13px;cursor:pointer}
+.chip.sel{background:var(--band);border-color:var(--band);color:#fff}
+.barra{height:22px;display:flex;gap:2px;background:var(--bg);border-radius:4px;overflow:hidden}
+.barra span{display:block;height:100%}
+details summary{cursor:pointer;color:var(--muted);font-size:13px;margin-top:8px}
+</style></head><body>
+<header><h1>Server Traccar</h1><p id="testa"></p></header>
+<main>
+<div class="kpi" id="kpi"></div>
+<div class="griglia">
+<section><h2>Posizioni archiviate al giorno</h2><p class="sotto">Quanto lavoro ricevono i dispositivi: ogni punto inviato da un telefono è una posizione.</p><div id="g_pos"></div></section>
+<section><h2>Richieste al portale al giorno</h2><p class="sotto">Quanto lavoro fanno gli utenti: pagine, mappe, rapporti, programmi.</p><div id="g_req"></div></section>
+<section><h2>Utenti e dispositivi attivi al giorno</h2><p class="sotto">Dalle statistiche notturne di Traccar: è il conteggio esatto.</p><div id="g_att"></div>
+<div class="leg"><span><i style="background:var(--s1)"></i>utenti</span><span><i style="background:var(--s2)"></i>dispositivi</span></div></section>
+<section><h2>Disco e memoria RAM</h2><div id="disco"></div></section>
+</div>
+<section><h2>Utenti per società</h2><p class="sotto" id="nota_utenti"></p><div id="soc"></div>
+<div class="leg"><span><i style="background:var(--good)"></i>attivi nell'ultima ora</span><span><i style="background:var(--q1)"></i>oggi</span><span><i style="background:var(--q3)"></i>negli ultimi 7 giorni</span><span><i style="background:var(--q0)"></i>non attivi da 7 giorni</span></div></section>
+<section id="sez_elenco"><h2>Elenco utenti</h2><div class="filtri" id="filtri"></div><div style="overflow-x:auto"><table id="tab"></table></div></section>
+<div class="griglia">
+<section><h2>Dispositivi online adesso, per gruppo</h2><div id="disp"></div>
+<div class="leg"><span><i style="background:var(--s1)"></i>online</span><span><i style="background:var(--q0)"></i>offline o sconosciuto</span></div></section>
+<section><h2>Accessi rifiutati</h2><p class="sotto">Password sbagliate o utenti inesistenti, ultimi giorni: un aumento improvviso merita un'occhiata.</p><div id="rif"></div></section>
+</div>
+</main>
+<div class="tip" id="tip"></div>
+<script>
+const D = {"generato": "2026-11-21T16:40:16+01:00", "versione": "", "host": "", "salute": "OK", "risposta_ms": 228, "statistiche": [{"giorno": "2026-08-23", "utenti": 0, "dispositivi": 1, "richieste": 0, "ricevute": 7, "archiviate": 1}, {"giorno": "2026-08-24", "utenti": 0, "dispositivi": 0, "richieste": 0, "ricevute": 11, "archiviate": 0}, {"giorno": "2026-08-25", "utenti": 0, "dispositivi": 1, "richieste": 0, "ricevute": 13, "archiviate": 2}, {"giorno": "2026-08-26", "utenti": 0, "dispositivi": 1, "richieste": 0, "ricevute": 18, "archiviate": 2}, {"giorno": "2026-08-27", "utenti": 0, "dispositivi": 1, "richieste": 0, "ricevute": 9, "archiviate": 1}, {"giorno": "2026-08-28", "utenti": 0, "dispositivi": 1, "richieste": 0, "ricevute": 8, "archiviate": 1}, {"giorno": "2026-08-29", "utenti": 0, "dispositivi": 1, "richieste": 0, "ricevute": 26, "archiviate": 1}, {"giorno": "2026-08-30", "utenti": 0, "dispositivi": 0, "richieste": 0, "ricevute": 9, "archiviate": 0}, {"giorno": "2026-08-31", "utenti": 0, "dispositivi": 0, "richieste": 0, "ricevute": 8, "archiviate": 0}, {"giorno": "2026-09-01", "utenti": 0, "dispositivi": 0, "richieste": 0, "ricevute": 20, "archiviate": 0}, {"giorno": "2026-09-02", "utenti": 0, "dispositivi": 1, "richieste": 0, "ricevute": 8, "archiviate": 2}, {"giorno": "2026-09-03", "utenti": 0, "dispositivi": 1, "richieste": 0, "ricevute": 1, "archiviate": 1}, {"giorno": "2026-09-04", "utenti": 0, "dispositivi": 1, "richieste": 0, "ricevute": 8, "archiviate": 1}, {"giorno": "2026-09-05", "utenti": 0, "dispositivi": 1, "richieste": 0, "ricevute": 11, "archiviate": 1}, {"giorno": "2026-09-06", "utenti": 0, "dispositivi": 1, "richieste": 0, "ricevute": 12, "archiviate": 3}, {"giorno": "2026-09-07", "utenti": 0, "dispositivi": 1, "richieste": 0, "ricevute": 10, "archiviate": 2}, {"giorno": "2026-09-08", "utenti": 0, "dispositivi": 1, "richieste": 0, "ricevute": 14, "archiviate": 3}, {"giorno": "2026-09-09", "utenti": 0, "dispositivi": 1, "richieste": 0, "ricevute": 19, "archiviate": 4}, {"giorno": "2026-09-10", "utenti": 0, "dispositivi": 0, "richieste": 0, "ricevute": 8, "archiviate": 0}, {"giorno": "2026-09-11", "utenti": 0, "dispositivi": 1, "richieste": 0, "ricevute": 19, "archiviate": 3}, {"giorno": "2026-09-12", "utenti": 0, "dispositivi": 1, "richieste": 0, "ricevute": 12, "archiviate": 4}, {"giorno": "2026-09-13", "utenti": 0, "dispositivi": 1, "richieste": 0, "ricevute": 12, "archiviate": 4}, {"giorno": "2026-09-14", "utenti": 0, "dispositivi": 1, "richieste": 0, "ricevute": 11, "archiviate": 1}, {"giorno": "2026-09-15", "utenti": 0, "dispositivi": 1, "richieste": 0, "ricevute": 20, "archiviate": 4}, {"giorno": "2026-09-16", "utenti": 0, "dispositivi": 1, "richieste": 0, "ricevute": 24, "archiviate": 5}, {"giorno": "2026-09-17", "utenti": 0, "dispositivi": 1, "richieste": 0, "ricevute": 15, "archiviate": 3}, {"giorno": "2026-09-18", "utenti": 0, "dispositivi": 1, "richieste": 0, "ricevute": 15, "archiviate": 1}, {"giorno": "2026-09-19", "utenti": 0, "dispositivi": 1, "richieste": 0, "ricevute": 16, "archiviate": 7}, {"giorno": "2026-09-20", "utenti": 0, "dispositivi": 1, "richieste": 0, "ricevute": 21, "archiviate": 4}, {"giorno": "2026-09-21", "utenti": 0, "dispositivi": 1, "richieste": 0, "ricevute": 13, "archiviate": 3}, {"giorno": "2026-09-22", "utenti": 0, "dispositivi": 1, "richieste": 0, "ricevute": 14, "archiviate": 5}, {"giorno": "2026-09-23", "utenti": 0, "dispositivi": 1, "richieste": 0, "ricevute": 10, "archiviate": 2}, {"giorno": "2026-09-24", "utenti": 0, "dispositivi": 1, "richieste": 0, "ricevute": 17, "archiviate": 2}, {"giorno": "2026-09-25", "utenti": 0, "dispositivi": 1, "richieste": 0, "ricevute": 13, "archiviate": 3}, {"giorno": "2026-09-26", "utenti": 0, "dispositivi": 1, "richieste": 0, "ricevute": 17, "archiviate": 2}, {"giorno": "2026-09-27", "utenti": 0, "dispositivi": 1, "richieste": 0, "ricevute": 13, "archiviate": 3}, {"giorno": "2026-09-28", "utenti": 1, "dispositivi": 3, "richieste": 445, "ricevute": 2270, "archiviate": 2212}, {"giorno": "2026-09-29", "utenti": 1, "dispositivi": 2, "richieste": 340, "ricevute": 1859, "archiviate": 1850}, {"giorno": "2026-09-30", "utenti": 1, "dispositivi": 2, "richieste": 5391, "ricevute": 1138, "archiviate": 1122}, {"giorno": "2026-10-01", "utenti": 1, "dispositivi": 2, "richieste": 298, "ricevute": 599, "archiviate": 592}, {"giorno": "2026-10-02", "utenti": 1, "dispositivi": 2, "richieste": 297, "ricevute": 8240, "archiviate": 8230}, {"giorno": "2026-10-03", "utenti": 1, "dispositivi": 2, "richieste": 106, "ricevute": 5323, "archiviate": 5310}, {"giorno": "2026-10-04", "utenti": 0, "dispositivi": 2, "richieste": 0, "ricevute": 1306, "archiviate": 1293}, {"giorno": "2026-10-05", "utenti": 0, "dispositivi": 2, "richieste": 0, "ricevute": 2859, "archiviate": 2849}, {"giorno": "2026-10-06", "utenti": 0, "dispositivi": 2, "richieste": 0, "ricevute": 463, "archiviate": 446}, {"giorno": "2026-10-07", "utenti": 0, "dispositivi": 2, "richieste": 0, "ricevute": 2419, "archiviate": 2410}, {"giorno": "2026-10-08", "utenti": 1, "dispositivi": 2, "richieste": 64, "ricevute": 4101, "archiviate": 4092}, {"giorno": "2026-10-09", "utenti": 1, "dispositivi": 2, "richieste": 121, "ricevute": 4826, "archiviate": 4816}, {"giorno": "2026-10-10", "utenti": 1, "dispositivi": 2, "richieste": 692, "ricevute": 7455, "archiviate": 7426}, {"giorno": "2026-10-11", "utenti": 1, "dispositivi": 3, "richieste": 474, "ricevute": 1629, "archiviate": 1606}, {"giorno": "2026-10-12", "utenti": 1, "dispositivi": 3, "richieste": 248, "ricevute": 1770, "archiviate": 1759}, {"giorno": "2026-10-13", "utenti": 1, "dispositivi": 2, "richieste": 21, "ricevute": 136, "archiviate": 94}, {"giorno": "2026-10-14", "utenti": 2, "dispositivi": 6, "richieste": 2173, "ricevute": 4988, "archiviate": 4915}, {"giorno": "2026-10-15", "utenti": 1, "dispositivi": 5, "richieste": 351, "ricevute": 2240, "archiviate": 2233}, {"giorno": "2026-10-16", "utenti": 0, "dispositivi": 3, "richieste": 0, "ricevute": 921, "archiviate": 903}, {"giorno": "2026-10-17", "utenti": 1, "dispositivi": 4, "richieste": 107, "ricevute": 870, "archiviate": 863}, {"giorno": "2026-10-18", "utenti": 0, "dispositivi": 3, "richieste": 0, "ricevute": 517, "archiviate": 501}, {"giorno": "2026-10-19", "utenti": 1, "dispositivi": 5, "richieste": 156, "ricevute": 2542, "archiviate": 2535}, {"giorno": "2026-10-20", "utenti": 0, "dispositivi": 4, "richieste": 0, "ricevute": 474, "archiviate": 474}, {"giorno": "2026-10-21", "utenti": 2, "dispositivi": 9, "richieste": 1130, "ricevute": 1541, "archiviate": 1500}, {"giorno": "2026-10-22", "utenti": 1, "dispositivi": 9, "richieste": 1129, "ricevute": 1165, "archiviate": 1052}, {"giorno": "2026-10-23", "utenti": 2, "dispositivi": 9, "richieste": 1016, "ricevute": 2574, "archiviate": 2383}, {"giorno": "2026-10-24", "utenti": 1, "dispositivi": 4, "richieste": 90, "ricevute": 765, "archiviate": 546}, {"giorno": "2026-10-25", "utenti": 2, "dispositivi": 5, "richieste": 1052, "ricevute": 3077, "archiviate": 2932}, {"giorno": "2026-10-25", "utenti": 2, "dispositivi": 4, "richieste": 97, "ricevute": 2264, "archiviate": 2248}, {"giorno": "2026-10-26", "utenti": 5, "dispositivi": 6, "richieste": 1288, "ricevute": 4604, "archiviate": 4592}, {"giorno": "2026-10-27", "utenti": 3, "dispositivi": 14, "richieste": 1400, "ricevute": 8859, "archiviate": 8835}, {"giorno": "2026-10-28", "utenti": 8, "dispositivi": 10, "richieste": 2807, "ricevute": 10161, "archiviate": 10150}, {"giorno": "2026-10-29", "utenti": 4, "dispositivi": 4, "richieste": 1142, "ricevute": 968, "archiviate": 958}, {"giorno": "2026-10-30", "utenti": 7, "dispositivi": 5, "richieste": 2052, "ricevute": 3582, "archiviate": 3571}, {"giorno": "2026-10-31", "utenti": 3, "dispositivi": 5, "richieste": 2310, "ricevute": 4499, "archiviate": 4484}, {"giorno": "2026-11-01", "utenti": 4, "dispositivi": 6, "richieste": 2813, "ricevute": 4432, "archiviate": 4416}, {"giorno": "2026-11-02", "utenti": 8, "dispositivi": 9, "richieste": 3399, "ricevute": 7819, "archiviate": 7800}, {"giorno": "2026-11-03", "utenti": 1, "dispositivi": 5, "richieste": 26, "ricevute": 1649, "archiviate": 1642}, {"giorno": "2026-11-04", "utenti": 6, "dispositivi": 13, "richieste": 2207, "ricevute": 2740, "archiviate": 2731}, {"giorno": "2026-11-05", "utenti": 5, "dispositivi": 11, "richieste": 1854, "ricevute": 2494, "archiviate": 2485}, {"giorno": "2026-11-07", "utenti": 4, "dispositivi": 8, "richieste": 725, "ricevute": 23364, "archiviate": 23356}, {"giorno": "2026-11-07", "utenti": 4, "dispositivi": 9, "richieste": 3525, "ricevute": 2752, "archiviate": 2746}, {"giorno": "2026-11-08", "utenti": 2, "dispositivi": 7, "richieste": 585, "ricevute": 2774, "archiviate": 2754}, {"giorno": "2026-11-09", "utenti": 7, "dispositivi": 14, "richieste": 2629, "ricevute": 2084, "archiviate": 2037}, {"giorno": "2026-11-10", "utenti": 8, "dispositivi": 7, "richieste": 3711, "ricevute": 8253, "archiviate": 8246}, {"giorno": "2026-11-11", "utenti": 8, "dispositivi": 11, "richieste": 5824, "ricevute": 8617, "archiviate": 8603}, {"giorno": "2026-11-12", "utenti": 11, "dispositivi": 22, "richieste": 8243, "ricevute": 27261, "archiviate": 27248}, {"giorno": "2026-11-13", "utenti": 8, "dispositivi": 16, "richieste": 4764, "ricevute": 20105, "archiviate": 20095}, {"giorno": "2026-11-14", "utenti": 6, "dispositivi": 11, "richieste": 1887, "ricevute": 28662, "archiviate": 28648}, {"giorno": "2026-11-15", "utenti": 3, "dispositivi": 9, "richieste": 1004, "ricevute": 3951, "archiviate": 3934}, {"giorno": "2026-11-16", "utenti": 4, "dispositivi": 9, "richieste": 2219, "ricevute": 17637, "archiviate": 17627}, {"giorno": "2026-11-17", "utenti": 6, "dispositivi": 12, "richieste": 2218, "ricevute": 8535, "archiviate": 8525}, {"giorno": "2026-11-18", "utenti": 6, "dispositivi": 15, "richieste": 2444, "ricevute": 14071, "archiviate": 14061}, {"giorno": "2026-11-19", "utenti": 7, "dispositivi": 14, "richieste": 6999, "ricevute": 13422, "archiviate": 13408}, {"giorno": "2026-11-20", "utenti": 3, "dispositivi": 17, "richieste": 5618, "ricevute": 23182, "archiviate": 23164}], "archivio_totale": 422107, "archivio_dal": "2026-03-17", "dispositivi": [{"gruppo": "ALECLA'", "online": 0, "offline": 0, "sconosciuto": 0}, {"gruppo": "BISN", "online": 0, "offline": 1, "sconosciuto": 3}, {"gruppo": "BUS", "online": 1, "offline": 5, "sconosciuto": 8}, {"gruppo": "COSAT", "online": 0, "offline": 1, "sconosciuto": 33}, {"gruppo": "DA ASSEGNARE", "online": 0, "offline": 2, "sconosciuto": 37}, {"gruppo": "DI STASIO", "online": 0, "offline": 0, "sconosciuto": 1}, {"gruppo": "SABRINA", "online": 0, "offline": 0, "sconosciuto": 0}, {"gruppo": "STAT TURISMO", "online": 0, "offline": 0, "sconosciuto": 0}, {"gruppo": "TROIANI", "online": 0, "offline": 0, "sconosciuto": 0}], "utenti": [{"societa": "Amministratori", "stato": "no", "nome": "", "posta": "", "ip": "", "ultimo_accesso": "", "ultima_azione": "", "azioni_7g": 0, "disattivo": false}, {"societa": "Amministratori", "stato": "no", "nome": "", "posta": "", "ip": "", "ultimo_accesso": "", "ultima_azione": "", "azioni_7g": 0, "disattivo": false}, {"societa": "Amministratori", "stato": "settimana", "nome": "", "posta": "", "ip": "", "ultimo_accesso": "", "ultima_azione": "", "azioni_7g": 0, "disattivo": false}, {"societa": "BIRS", "stato": "no", "nome": "", "posta": "", "ip": "", "ultimo_accesso": "", "ultima_azione": "", "azioni_7g": 0, "disattivo": false}, {"societa": "BIRS", "stato": "settimana", "nome": "", "posta": "", "ip": "", "ultimo_accesso": "", "ultima_azione": "", "azioni_7g": 0, "disattivo": false}, {"societa": "BIRS", "stato": "oggi", "nome": "", "posta": "", "ip": "", "ultimo_accesso": "", "ultima_azione": "", "azioni_7g": 0, "disattivo": false}, {"societa": "BIRS", "stato": "settimana", "nome": "", "posta": "", "ip": "", "ultimo_accesso": "", "ultima_azione": "", "azioni_7g": 0, "disattivo": false}, {"societa": "BIRS", "stato": "no", "nome": "", "posta": "", "ip": "", "ultimo_accesso": "", "ultima_azione": "", "azioni_7g": 0, "disattivo": false}, {"societa": "BIRS", "stato": "no", "nome": "", "posta": "", "ip": "", "ultimo_accesso": "", "ultima_azione": "", "azioni_7g": 0, "disattivo": false}, {"societa": "BIRS", "stato": "oggi", "nome": "", "posta": "", "ip": "", "ultimo_accesso": "", "ultima_azione": "", "azioni_7g": 0, "disattivo": false}, {"societa": "BIRS", "stato": "no", "nome": "", "posta": "", "ip": "", "ultimo_accesso": "", "ultima_azione": "", "azioni_7g": 0, "disattivo": false}, {"societa": "BIRS", "stato": "no", "nome": "", "posta": "", "ip": "", "ultimo_accesso": "", "ultima_azione": "", "azioni_7g": 0, "disattivo": false}, {"societa": "BIRS", "stato": "no", "nome": "", "posta": "", "ip": "", "ultimo_accesso": "", "ultima_azione": "", "azioni_7g": 0, "disattivo": false}, {"societa": "BIRS", "stato": "no", "nome": "", "posta": "", "ip": "", "ultimo_accesso": "", "ultima_azione": "", "azioni_7g": 0, "disattivo": false}, {"societa": "BIRS", "stato": "settimana", "nome": "", "posta": "", "ip": "", "ultimo_accesso": "", "ultima_azione": "", "azioni_7g": 0, "disattivo": false}, {"societa": "BIRS", "stato": "no", "nome": "", "posta": "", "ip": "", "ultimo_accesso": "", "ultima_azione": "", "azioni_7g": 0, "disattivo": false}, {"societa": "BIRS", "stato": "no", "nome": "", "posta": "", "ip": "", "ultimo_accesso": "", "ultima_azione": "", "azioni_7g": 0, "disattivo": false}, {"societa": "BIRS", "stato": "no", "nome": "", "posta": "", "ip": "", "ultimo_accesso": "", "ultima_azione": "", "azioni_7g": 0, "disattivo": false}, {"societa": "BIRS", "stato": "no", "nome": "", "posta": "", "ip": "", "ultimo_accesso": "", "ultima_azione": "", "azioni_7g": 0, "disattivo": false}, {"societa": "BIRS", "stato": "no", "nome": "", "posta": "", "ip": "", "ultimo_accesso": "", "ultima_azione": "", "azioni_7g": 0, "disattivo": false}, {"societa": "BIRS", "stato": "no", "nome": "", "posta": "", "ip": "", "ultimo_accesso": "", "ultima_azione": "", "azioni_7g": 0, "disattivo": false}, {"societa": "BIRS", "stato": "no", "nome": "", "posta": "", "ip": "", "ultimo_accesso": "", "ultima_azione": "", "azioni_7g": 0, "disattivo": false}, {"societa": "BIRS", "stato": "settimana", "nome": "", "posta": "", "ip": "", "ultimo_accesso": "", "ultima_azione": "", "azioni_7g": 0, "disattivo": false}, {"societa": "BIRS", "stato": "no", "nome": "", "posta": "", "ip": "", "ultimo_accesso": "", "ultima_azione": "", "azioni_7g": 0, "disattivo": false}, {"societa": "BIRS", "stato": "settimana", "nome": "", "posta": "", "ip": "", "ultimo_accesso": "", "ultima_azione": "", "azioni_7g": 0, "disattivo": false}, {"societa": "BIRS", "stato": "settimana", "nome": "", "posta": "", "ip": "", "ultimo_accesso": "", "ultima_azione": "", "azioni_7g": 0, "disattivo": false}, {"societa": "BIRS", "stato": "no", "nome": "", "posta": "", "ip": "", "ultimo_accesso": "", "ultima_azione": "", "azioni_7g": 0, "disattivo": false}, {"societa": "BIRS", "stato": "no", "nome": "", "posta": "", "ip": "", "ultimo_accesso": "", "ultima_azione": "", "azioni_7g": 0, "disattivo": false}, {"societa": "BISN", "stato": "no", "nome": "", "posta": "", "ip": "", "ultimo_accesso": "", "ultima_azione": "", "azioni_7g": 0, "disattivo": false}, {"societa": "BISN", "stato": "no", "nome": "", "posta": "", "ip": "", "ultimo_accesso": "", "ultima_azione": "", "azioni_7g": 0, "disattivo": false}, {"societa": "BISN", "stato": "no", "nome": "", "posta": "", "ip": "", "ultimo_accesso": "", "ultima_azione": "", "azioni_7g": 0, "disattivo": false}, {"societa": "BISN", "stato": "no", "nome": "", "posta": "", "ip": "", "ultimo_accesso": "", "ultima_azione": "", "azioni_7g": 0, "disattivo": false}, {"societa": "BISN", "stato": "settimana", "nome": "", "posta": "", "ip": "", "ultimo_accesso": "", "ultima_azione": "", "azioni_7g": 0, "disattivo": false}, {"societa": "BISN", "stato": "no", "nome": "", "posta": "", "ip": "", "ultimo_accesso": "", "ultima_azione": "", "azioni_7g": 0, "disattivo": false}, {"societa": "BISN", "stato": "settimana", "nome": "", "posta": "", "ip": "", "ultimo_accesso": "", "ultima_azione": "", "azioni_7g": 0, "disattivo": false}, {"societa": "COSAT", "stato": "settimana", "nome": "", "posta": "", "ip": "", "ultimo_accesso": "", "ultima_azione": "", "azioni_7g": 0, "disattivo": false}, {"societa": "COSAT", "stato": "settimana", "nome": "", "posta": "", "ip": "", "ultimo_accesso": "", "ultima_azione": "", "azioni_7g": 0, "disattivo": false}, {"societa": "COSAT", "stato": "no", "nome": "", "posta": "", "ip": "", "ultimo_accesso": "", "ultima_azione": "", "azioni_7g": 0, "disattivo": false}, {"societa": "COSAT", "stato": "no", "nome": "", "posta": "", "ip": "", "ultimo_accesso": "", "ultima_azione": "", "azioni_7g": 0, "disattivo": false}, {"societa": "COSAT", "stato": "no", "nome": "", "posta": "", "ip": "", "ultimo_accesso": "", "ultima_azione": "", "azioni_7g": 0, "disattivo": false}, {"societa": "COSAT", "stato": "no", "nome": "", "posta": "", "ip": "", "ultimo_accesso": "", "ultima_azione": "", "azioni_7g": 0, "disattivo": false}, {"societa": "COSAT", "stato": "no", "nome": "", "posta": "", "ip": "", "ultimo_accesso": "", "ultima_azione": "", "azioni_7g": 0, "disattivo": false}, {"societa": "COSAT", "stato": "no", "nome": "", "posta": "", "ip": "", "ultimo_accesso": "", "ultima_azione": "", "azioni_7g": 0, "disattivo": false}, {"societa": "gruppo_test", "stato": "no", "nome": "", "posta": "", "ip": "", "ultimo_accesso": "", "ultima_azione": "", "azioni_7g": 0, "disattivo": false}, {"societa": "nessun gruppo", "stato": "no", "nome": "", "posta": "", "ip": "", "ultimo_accesso": "", "ultima_azione": "", "azioni_7g": 0, "disattivo": false}, {"societa": "nessun gruppo", "stato": "no", "nome": "", "posta": "", "ip": "", "ultimo_accesso": "", "ultima_azione": "", "azioni_7g": 0, "disattivo": false}, {"societa": "nessun gruppo", "stato": "no", "nome": "", "posta": "", "ip": "", "ultimo_accesso": "", "ultima_azione": "", "azioni_7g": 0, "disattivo": false}], "rifiutati": [{"quando": "2026-10-25T07:05+01:00", "ip": "", "utente": ""}, {"quando": "2026-10-26T15:29+01:00", "ip": "", "utente": ""}, {"quando": "2026-10-26T16:00+01:00", "ip": "", "utente": ""}, {"quando": "2026-10-26T16:00+01:00", "ip": "", "utente": ""}, {"quando": "2026-10-27T08:52+01:00", "ip": "", "utente": ""}, {"quando": "2026-10-27T08:53+01:00", "ip": "", "utente": ""}, {"quando": "2026-10-27T08:53+01:00", "ip": "", "utente": ""}, {"quando": "2026-10-28T10:26+01:00", "ip": "", "utente": ""}, {"quando": "2026-10-28T10:26+01:00", "ip": "", "utente": ""}, {"quando": "2026-10-28T10:28+01:00", "ip": "", "utente": ""}, {"quando": "2026-10-28T10:29+01:00", "ip": "", "utente": ""}, {"quando": "2026-10-28T10:29+01:00", "ip": "", "utente": ""}, {"quando": "2026-10-28T10:30+01:00", "ip": "", "utente": ""}, {"quando": "2026-10-28T10:37+01:00", "ip": "", "utente": ""}, {"quando": "2026-10-28T10:44+01:00", "ip": "", "utente": ""}, {"quando": "2026-10-30T12:33+01:00", "ip": "", "utente": ""}, {"quando": "2026-11-01T12:24+01:00", "ip": "", "utente": ""}, {"quando": "2026-11-02T16:21+01:00", "ip": "", "utente": ""}, {"quando": "2026-11-02T16:39+01:00", "ip": "", "utente": ""}, {"quando": "2026-11-02T16:39+01:00", "ip": "", "utente": ""}, {"quando": "2026-11-05T09:44+01:00", "ip": "", "utente": ""}, {"quando": "2026-11-08T22:03+01:00", "ip": "", "utente": ""}, {"quando": "2026-11-10T06:41+01:00", "ip": "", "utente": ""}, {"quando": "2026-11-10T11:43+01:00", "ip": "", "utente": ""}, {"quando": "2026-11-10T11:43+01:00", "ip": "", "utente": ""}, {"quando": "2026-11-10T11:43+01:00", "ip": "", "utente": ""}, {"quando": "2026-11-10T11:44+01:00", "ip": "", "utente": ""}, {"quando": "2026-11-10T11:45+01:00", "ip": "", "utente": ""}, {"quando": "2026-11-11T12:30+01:00", "ip": "", "utente": ""}, {"quando": "2026-11-11T12:39+01:00", "ip": "", "utente": ""}, {"quando": "2026-11-11T12:40+01:00", "ip": "", "utente": ""}, {"quando": "2026-11-12T22:27+01:00", "ip": "", "utente": ""}, {"quando": "2026-11-12T22:27+01:00", "ip": "", "utente": ""}, {"quando": "2026-11-17T12:44+01:00", "ip": "", "utente": ""}, {"quando": "2026-11-17T12:44+01:00", "ip": "", "utente": ""}, {"quando": "2026-11-17T12:45+01:00", "ip": "", "utente": ""}, {"quando": "2026-11-17T12:47+01:00", "ip": "", "utente": ""}, {"quando": "2026-11-17T12:47+01:00", "ip": "", "utente": ""}, {"quando": "2026-11-18T13:07+01:00", "ip": "", "utente": ""}, {"quando": "2026-11-20T11:50+01:00", "ip": "", "utente": ""}], "azioni_per_tipo": {"login": 137, "create": 38, "edit": 111, "logout": 9, "report": 122, "command": 76, "remove": 6}, "giorni_audit": 30, "disco": null, "ram": null, "anonima": true};
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const nf = n => Number(n).toLocaleString('it-IT');
+const gg = s => { const [y,m,d] = s.split('-'); return d + '/' + m; };
+const ggl = s => new Date(s + 'T12:00:00').toLocaleDateString('it-IT', {weekday:'short', day:'numeric', month:'short'});
+const ts = s => s ? new Date(s).toLocaleString('it-IT', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'}) : '—';
+const tip = $('tip');
+function mostra(e, html){ tip.innerHTML = html; tip.style.display = 'block';
+  const x = Math.min(e.clientX + 14, innerWidth - tip.offsetWidth - 8); tip.style.left = x + 'px'; tip.style.top = (e.clientY + 14) + 'px'; }
+function nascondi(){ tip.style.display = 'none'; }
+
+$('testa').textContent = (D.anonima ? 'Versione pubblica, senza nomi né indirizzi' : D.host + ' · versione ' + D.versione) +
+  ' · aggiornato ' + new Date(D.generato).toLocaleString('it-IT') + ' · si ricarica ogni 15 minuti';
+
+const S = D.statistiche, ieri = S[S.length - 1] || {};
+const U = D.utenti, att = s => U.filter(u => u.stato === s).length;
+const onl = D.dispositivi.reduce((a, g) => a + g.online, 0), tot = D.dispositivi.reduce((a, g) => a + g.online + g.offline + g.sconosciuto, 0);
+const rif7 = D.rifiutati.filter(r => new Date(r.quando) > Date.now() - 7 * 864e5).length;
+const salOk = D.salute === 'OK';
+$('kpi').innerHTML = [
+  [`<span class="${salOk ? 'ok' : 'ko'}">${salOk ? '● risponde' : '● ' + esc(D.salute)}</span>`, 'server, in ' + D.risposta_ms + ' ms'],
+  [nf(onl) + ' / ' + nf(tot), 'dispositivi online adesso'],
+  [nf(att('ora')), 'utenti attivi nell\'ultima ora'],
+  [nf(att('ora') + att('oggi')), 'utenti attivi oggi'],
+  [nf(ieri.archiviate || 0), 'posizioni archiviate ' + (ieri.giorno ? 'il ' + gg(ieri.giorno) : '')],
+  [nf(rif7), 'accessi rifiutati in 7 giorni'],
+].map(([b, s]) => `<div><b>${b}</b><span>${s}</span></div>`).join('');
+
+// grafico a barre o linee, un asse solo
+function grafico(el, serie, tipo){
+  const W = 640, H = 220, ml = 46, mr = 10, mt = 10, mb = 26, n = S.length;
+  const max = Math.max(1, ...serie.flatMap(s => S.map(r => r[s.k])));
+  const passo = Math.pow(10, Math.floor(Math.log10(max))), top = Math.ceil(max / passo) * passo;
+  const x = i => ml + (W - ml - mr) * (i + .5) / n, y = v => mt + (H - mt - mb) * (1 - v / top);
+  let g = '';
+  for (let t = 0; t <= 4; t++){ const v = top * t / 4, yy = y(v);
+    g += `<line x1="${ml}" x2="${W - mr}" y1="${yy}" y2="${yy}" stroke="var(--grid)"/><text x="${ml - 6}" y="${yy + 4}" text-anchor="end">${nf(Math.round(v))}</text>`; }
+  const ogni = Math.ceil(n / 8);
+  S.forEach((r, i) => { if ((n - 1 - i) % ogni === 0) g += `<text x="${x(i)}" y="${H - 8}" text-anchor="middle">${gg(r.giorno)}</text>`; });
+  const bw = Math.max(1, (W - ml - mr) / n - 2);
+  if (tipo === 'barre') S.forEach((r, i) => { const v = r[serie[0].k], yy = y(v), h = Math.max(0, y(0) - yy);
+      if (h > 0) g += `<path d="M${x(i) - bw / 2},${y(0)} v${-Math.max(0, h - Math.min(4, bw / 2, h))} q0,${-Math.min(4, bw / 2, h)} ${Math.min(4, bw / 2)},${-Math.min(4, bw / 2, h)} h${bw - 2 * Math.min(4, bw / 2)} q${Math.min(4, bw / 2)},0 ${Math.min(4, bw / 2)},${Math.min(4, bw / 2, h)} V${y(0)}z" fill="var(--${serie[0].c})"/>`; });
+  else serie.forEach(s => { g += `<polyline fill="none" stroke="var(--${s.c})" stroke-width="2" stroke-linejoin="round" points="${S.map((r, i) => x(i) + ',' + y(r[s.k])).join(' ')}"/>`; });
+  g += `<line x1="${ml}" x2="${W - mr}" y1="${y(0)}" y2="${y(0)}" stroke="var(--muted)"/>`;
+  g += `<line class="cross" x1="0" x2="0" y1="${mt}" y2="${y(0)}" stroke="var(--muted)" stroke-dasharray="3 3" visibility="hidden"/>`;
+  g += `<rect x="${ml}" y="${mt}" width="${W - ml - mr}" height="${H - mt - mb}" fill="transparent" class="hit"/>`;
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img">${g}</svg>`;
+  const svg = el.querySelector('svg'), cr = svg.querySelector('.cross');
+  svg.querySelector('.hit').addEventListener('mousemove', e => {
+    const b = svg.getBoundingClientRect(), px = (e.clientX - b.left) * W / b.width;
+    const i = Math.max(0, Math.min(n - 1, Math.floor((px - ml) / ((W - ml - mr) / n)))), r = S[i];
+    cr.setAttribute('x1', x(i)); cr.setAttribute('x2', x(i)); cr.setAttribute('visibility', 'visible');
+    mostra(e, `<b>${ggl(r.giorno)}</b><br>` + serie.map(s => `${s.l}: <b>${nf(r[s.k])}</b>`).join('<br>'));
+  });
+  svg.querySelector('.hit').addEventListener('mouseleave', () => { cr.setAttribute('visibility', 'hidden'); nascondi(); });
+}
+grafico($('g_pos'), [{k:'archiviate', l:'posizioni archiviate', c:'s1'}], 'barre');
+grafico($('g_req'), [{k:'richieste', l:'richieste', c:'s1'}], 'barre');
+grafico($('g_att'), [{k:'utenti', l:'utenti attivi', c:'s1'}, {k:'dispositivi', l:'dispositivi attivi', c:'s2'}], 'linee');
+
+// disco e RAM
+const media7 = S.slice(-7).reduce((a, r) => a + r.archiviate, 0) / Math.max(1, Math.min(7, S.length));
+function risorsa(nome, r){
+  if (!r) return `<div><b>—</b><span>${nome}: non disponibile</span></div>`;
+  const pc = (r.totale_gb - r.libero_gb) / r.totale_gb * 100, col = pc > 90 ? 'var(--crit)' : pc > 75 ? 'var(--warn)' : 'var(--s1)';
+  return `<div><b>${nf(r.libero_gb.toFixed(1))} GB</b><span>${nome}: liberi su ${nf(r.totale_gb.toFixed(1))} GB · ${pc.toFixed(0)}% occupato</span>
+    <div class="barra" style="margin-top:6px"><span style="width:${pc}%;background:${col}"></span></div></div>`;
+}
+let dh = `<div class="kpi" style="margin:6px 0 10px">${risorsa('disco', D.disco)}${risorsa('RAM', D.ram)}</div>`;
+if (!D.disco || !D.ram) dh += `<p class="avviso"><b>${!D.disco && !D.ram ? 'Disco e RAM non disponibili.' : (!D.disco ? 'Disco' : 'RAM') + ' non disponibile.'}</b> L'interfaccia di Traccar non li espone: serve che chi gestisce il server pubblichi l'uscita di <code>df -k</code> e <code>free -k</code> in un file. Intanto, la crescita dell'archivio:</p>`;
+dh += `<div class="kpi" style="margin-top:10px"><div><b>${nf(D.archivio_totale)}</b><span>posizioni archiviate dal ${D.archivio_dal ? gg(D.archivio_dal) + '/' + D.archivio_dal.slice(0, 4) : '—'} (nessuna cancellata)</span></div>
+<div><b>${nf(Math.round(media7))}</b><span>posizioni al giorno, media degli ultimi 7 giorni</span></div></div>
+<p class="sotto">Sul server oggi non c'è una cancellazione automatica dei dati vecchi: l'archivio cresce senza fine.</p>`;
+$('disco').innerHTML = dh;
+
+// utenti per società
+$('nota_utenti').textContent = `Attivo = almeno un accesso o un'azione nel registro di Traccar (ultimi ${D.giorni_audit} giorni). Guardare la mappa non lascia traccia: è una stima per difetto.`;
+const ORD = ['ora', 'oggi', 'settimana', 'no'], COL = {ora:'var(--good)', oggi:'var(--q1)', settimana:'var(--q3)', no:'var(--q0)'};
+const NOMI = {ora:'ultima ora', oggi:'oggi', settimana:'ultimi 7 giorni', no:'non attivi'};
+const soc = {}; U.forEach(u => { (soc[u.societa] = soc[u.societa] || {ora:0, oggi:0, settimana:0, no:0, tot:0})[u.stato]++; soc[u.societa].tot++; });
+const maxSoc = Math.max(...Object.values(soc).map(s => s.tot));
+$('soc').innerHTML = '<div style="display:grid;grid-template-columns:max-content 1fr max-content;gap:8px 12px;align-items:center">' +
+  Object.entries(soc).sort((a, b) => b[1].tot - a[1].tot).map(([n, s]) =>
+    `<b>${esc(n)}</b><div class="barra" style="width:${s.tot / maxSoc * 100}%">` +
+    ORD.filter(k => s[k]).map(k => `<span data-t="${esc(n)}: ${s[k]} ${NOMI[k]}" style="flex:${s[k]};background:${COL[k]}"></span>`).join('') +
+    `</div><span>${s.ora + s.oggi} oggi · ${s.tot} utenti</span>`).join('') + '</div>';
+$('soc').querySelectorAll('[data-t]').forEach(el => { el.onmousemove = e => mostra(e, el.dataset.t); el.onmouseleave = nascondi; });
+
+// tabella utenti
+let filtro = 'tutte', ord = {k:'societa', su:true};
+const COLS = [['societa','Società'],['nome','Utente'],['stato','Attività'],['ultimo_accesso','Ultimo accesso'],['ultima_azione','Ultima azione'],['azioni_7g','Azioni in 7 giorni','n'],['ip','Ultimo indirizzo']];
+function tabella(){
+  $('filtri').innerHTML = ['tutte', ...Object.keys(soc).sort()].map(s => `<button class="chip${s === filtro ? ' sel' : ''}" data-s="${esc(s)}">${s === 'tutte' ? 'Tutte' : esc(s)}</button>`).join('');
+  $('filtri').querySelectorAll('button').forEach(b => b.onclick = () => { filtro = b.dataset.s; tabella(); });
+  const r = U.filter(u => filtro === 'tutte' || u.societa === filtro).slice().sort((a, b) => {
+    let x = a[ord.k], y = b[ord.k]; if (ord.k === 'stato'){ x = ORD.indexOf(x); y = ORD.indexOf(y); }
+    return (x < y ? -1 : x > y ? 1 : 0) * (ord.su ? 1 : -1); });
+  $('tab').innerHTML = '<tr>' + COLS.map(([k, l, c]) => `<th class="${c || ''}" data-k="${k}">${l}${ord.k === k ? (ord.su ? ' ▲' : ' ▼') : ''}</th>`).join('') + '</tr>' +
+    r.map(u => `<tr><td>${esc(u.societa)}</td><td>${esc(u.nome)}${u.disattivo ? ' <span class="sotto">(disattivato)</span>' : ''}</td>` +
+      `<td><span class="st ${u.stato}">${NOMI[u.stato]}</span></td><td>${ts(u.ultimo_accesso)}</td><td>${ts(u.ultima_azione)}</td>` +
+      `<td class="n">${nf(u.azioni_7g)}</td><td>${esc(u.ip)}</td></tr>`).join('');
+  $('tab').querySelectorAll('th').forEach(th => th.onclick = () => { const k = th.dataset.k; ord = {k, su: ord.k === k ? !ord.su : true}; tabella(); });
+}
+if (D.anonima) $('sez_elenco').remove(); else tabella();
+
+// dispositivi per gruppo
+const maxD = Math.max(1, ...D.dispositivi.map(g => g.online + g.offline + g.sconosciuto));
+$('disp').innerHTML = '<div style="display:grid;grid-template-columns:max-content 1fr max-content;gap:8px 12px;align-items:center">' +
+  D.dispositivi.map(g => { const t = g.online + g.offline + g.sconosciuto;
+    return `<b>${esc(g.gruppo)}</b><div class="barra" style="width:${Math.max(t / maxD * 100, 1)}%">` +
+      (g.online ? `<span data-t="${esc(g.gruppo)}: ${g.online} online" style="flex:${g.online};background:var(--s1)"></span>` : '') +
+      (t - g.online ? `<span data-t="${esc(g.gruppo)}: ${t - g.online} offline o sconosciuti" style="flex:${t - g.online};background:var(--q0)"></span>` : '') +
+      `</div><span>${g.online} su ${t}</span>`; }).join('') + '</div>';
+$('disp').querySelectorAll('[data-t]').forEach(el => { el.onmousemove = e => mostra(e, el.dataset.t); el.onmouseleave = nascondi; });
+
+// accessi rifiutati
+const R = D.rifiutati, perIp = {};
+R.forEach(r => perIp[r.ip] = (perIp[r.ip] || 0) + 1);
+$('rif').innerHTML = D.anonima ? `<p>${nf(R.length)} negli ultimi ${D.giorni_audit} giorni${R.length ? ', il più recente ' + ts(R[R.length - 1].quando) : ''}.</p>` : R.length ? `<p>${nf(R.length)} negli ultimi ${D.giorni_audit} giorni, da ${Object.keys(perIp).length} indirizzi. Il più recente: ${ts(R[R.length - 1].quando)}.</p>
+<table><tr><th>Indirizzo</th><th class="n">Tentativi</th></tr>${Object.entries(perIp).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([ip, n]) => `<tr><td>${esc(ip)}</td><td class="n">${n}</td></tr>`).join('')}</table>
+<details><summary>Gli ultimi 20</summary><table>${R.slice(-20).reverse().map(r => `<tr><td>${ts(r.quando)}</td><td>${esc(r.ip)}</td></tr>`).join('')}</table></details>`
+  : '<p>Nessuno negli ultimi ' + D.giorni_audit + ' giorni.</p>';
+</script></body></html>
